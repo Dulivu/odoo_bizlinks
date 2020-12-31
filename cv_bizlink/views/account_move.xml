@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="view_account_move_form" model="ir.ui.view">
+        <field name="name">cv.account.move.form</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_invoice_register_payment']" position="after">
+                <field name="efact_state" invisible="1"/>
+            	<button name="bz_publish" type="object" class="oe_highlight" string="[BZ] Publicar" help="Publica la factura en el portal de bizlinks" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published','cancel','declared'])]}"/>
+                <button name="bz_declare" type="object" class="oe_highlight" string="[BZ] Declarar" help="Solicita declaración a SUNAT, la factura debe ser previamente publicada" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
+                <button name="bz_publish_and_declare" class="oe_highlight" type="object" string="[BZ] Publicar y Declarar" help="Publica la factura en el portal de bizlinks y solicita la declaración a SUNAT" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published', 'cancel', 'declared'])]}"/>
+                <button name="bz_cancel" type="object" string="[BZ] Anular" help="Anula la factura publicada, no se puede anular una factura que no fue previamente publicada o que ya fue declarada a SUNAT" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
+                <button name="bz_status_query" type="object" string="[BZ] Status" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel'])]}"/>
+            </xpath>
+
+            <xpath expr="//page[@id='other_tab']/group" position="inside">
+                <group string="e-Fact" name="e-fact-group">
+                    <field name="efact_state" readonly="1"/>
+                    <field name="bz_signatura_value" readonly="1"/>
+                    <field name="bz_hash_code" readonly="1"/>
+                    <field name="bz_file_sign_url" widget="url" readonly="1"/>
+                    <field name="bz_file_pdf_url" widget="url" readonly="1"/>
+                    <field name="bz_file_gif_url" widget="url" readonly="1"/>
+                    <field name="bz_file_qr_url" widget="url" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_account_move_tree" model="ir.ui.view">
+        <field name="name">cv.account.move.tree</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree" />
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="efact_state"/>
+            </field>
+
+            <xpath expr="//tree" position="attributes">
+                <attribute name="decoration-danger">state != 'cancel' and efact_state == 'cancel'</attribute>
+                <attribute name="decoration-info">efact_state == 'unpublished' or state == 'draft'</attribute>
+                <attribute name="decoration-success">efact_state == 'published'</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

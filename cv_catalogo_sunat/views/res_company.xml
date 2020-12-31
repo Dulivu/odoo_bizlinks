@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_res_company_form" model="ir.ui.view">
+        <field name="name">res.company.form</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form" />
+        <field name="arch" type="xml">
+            <field name="vat" position="attributes">
+                <attribute name="string">RUC</attribute>
+            </field>
+
+            <field name="street2" position="attributes">
+                <attribute name="placeholder">Urbanización</attribute>
+            </field>
+
+            <field name="company_registry" position="attributes">
+                <attribute name="string">Razón Social</attribute>
+            </field>
+
+            <field name="country_id" position="after">
+                <field name="ubigeo_id" placeholder="Ubigeo" options="{'no_create': True, 'no_open': True}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

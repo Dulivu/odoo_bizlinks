@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+	<record id="view_account_move_form" model="ir.ui.view">
+        <field name="name">account.move.form</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form" />
+        <field name="arch" type="xml">
+    		<field name="journal_id" position="attributes">
+    			<attribute name="invisible">0</attribute>
+    			<attribute name="groups"></attribute>
+    		</field>
+
+            <xpath expr="//field[@name='invoice_line_ids']/tree/field[@name='tax_ids']" position="after">
+            	<field name="sunat_tax_impact_type" string="Afectación del IGV"/>
+            </xpath>
+
+            <field name="ref" position="after">
+                <field name="sunat_type" invisible="1"/>
+                <field name="sunat_ef_type" attrs="{'invisible': [('sunat_type', 'in', ['07', '08'])], 'required': [('sunat_type', 'in', ['01','03'])]}"/>
+                <field name="sunat_nc_type" attrs="{'invisible': [('sunat_type', '!=', '07')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
+                <field name="sunat_nd_type" attrs="{'invisible': [('sunat_type', '!=', '08')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
+            </field>
+
+            <field name="ref" position="attributes">
+                <attribute name="attrs">{'required': [('sunat_type', 'in', [('07', '08')])]}</attribute>
+                <attribute name="help">Para NC y ND, debe ingresar la serie y correlativo de la factura de referencia. Además del motivo separado por una coma y un espacio (, ).</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>
