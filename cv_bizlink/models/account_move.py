@@ -282,7 +282,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -293,7 +292,6 @@ class AccountMove(models.Model):
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-			print(dom.toprettyxml())
 			statuses = dom.documentElement.getElementsByTagName('status')
 			if statuses.length > 1:
 				status = statuses[1].firstChild.nodeValue
@@ -338,7 +336,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -349,7 +346,6 @@ class AccountMove(models.Model):
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-			print(dom.toprettyxml())
 
 			status = dom.documentElement.getElementsByTagName('status')
 			status = status[0].firstChild.nodeValue
@@ -385,7 +381,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -396,7 +391,6 @@ class AccountMove(models.Model):
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-			print(dom.toprettyxml())
 			statuses = dom.documentElement.getElementsByTagName('status')
 			if statuses.length > 1:
 				status = statuses[1].firstChild.nodeValue
@@ -441,7 +435,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -452,7 +445,6 @@ class AccountMove(models.Model):
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-			print(dom.toprettyxml())
 
 			status = dom.documentElement.getElementsByTagName('status')
 			status = status[0].firstChild.nodeValue
@@ -483,7 +475,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -494,7 +485,6 @@ class AccountMove(models.Model):
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-			print(dom.toprettyxml())
 
 			statuses = dom.documentElement.getElementsByTagName('status')
 			if statuses.length > 1:
