@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<record id="view_stock_picking_form" model="ir.ui.view">
+        <field name="name">cv.stock.picking.form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form" />
+        <field name="arch" type="xml">
+            <field name="group_id" position="after">
+                <field name="carrier_id"/>
+            </field>
+
+            <xpath expr="//header/button[@name='action_cancel']" position="after">
+                <field name="efact_state" invisible="1"/>
+                <button name="bz_publish_and_declare" string="[BZ] Declarar" class="oe_highlight" type="object" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft','waiting','confirmed','assigned']), ('efact_state', 'in', ['declared'])]}"/>
+            </xpath>
+
+            <xpath expr="//page[@name='extra']/group" position="after">
+                <group string="e-Fact" name="e-fact-group">
+                    <field name="efact_state" readonly="1"/>
+                    <field name="bz_signatura_value" readonly="1"/>
+                    <field name="bz_hash_code" readonly="1"/>
+                    <field name="bz_file_sign_url" widget="url" readonly="1"/>
+                    <field name="bz_file_pdf_url" widget="url" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_stock_picking_tree" model="ir.ui.view">
+        <field name="name">cv.stock.picking.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <field name="state" position="before">
+                <field name="efact_state"/>
+            </field>
+        </field>
+    </record>
+</odoo>
