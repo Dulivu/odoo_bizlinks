@@ -5,6 +5,8 @@ from odoo.exceptions import UserError
 from xml.dom.minidom import Element, Text, parseString
 from re import search
 import requests
+from datetime import datetime
+from pytz import timezone
 
 
 def createElement(dom, tag, text=False):
@@ -45,6 +47,9 @@ class AccountMove(models.Model):
 	bz_file_pdf_url = fields.Char('Factura PDF', copy=False)
 	bz_file_gif_url = fields.Char('Ruta Codigo', copy=False)
 	bz_file_qr_url = fields.Char('Ruta QR', copy=False)
+
+	cancel_date = fields.Date('Fecha de Baja')
+	cancel_id = fields.Char('Resumen ID')
 
 	def cancelCmd(self):
 		vat = self.company_id.vat
@@ -151,6 +156,26 @@ class AccountMove(models.Model):
 
 		return dom, command, soapCommand
 
+	def signOnLineSummaryCmd(self):
+		vat = self.company_id.vat
+
+		dom, header, command = createSoapEnvelope()
+
+		soapCommand = dom.createElement('SignOnLineSummaryCmd')
+		soapCommand.appendChild(dom.createElement('parametros'))
+
+		param = dom.createElement('parameter')
+		param.setAttribute('value', vat)
+		param.setAttribute('name', 'idEmisor')
+		soapCommand.appendChild(param)
+
+		param = dom.createElement('parameter')
+		param.setAttribute('value', 'RA')
+		param.setAttribute('name', 'tipoDocumento')
+		soapCommand.appendChild(param)
+
+		return dom, command, soapCommand
+
 	def signOnLineCmd(self):
 		vat = self.company_id.vat
 
@@ -170,6 +195,32 @@ class AccountMove(models.Model):
 		soapCommand.appendChild(param)
 
 		return dom, command, soapCommand
+
+	def writeXmlDocumentCancel(self, dom, soapCommand):
+		document = dom.createElement('documento')
+
+		document.appendChild(createElement(dom, 'numeroDocumentoEmisor', self.company_id.vat))
+		document.appendChild(createElement(dom, 'version', '1.0'))
+		document.appendChild(createElement(dom, 'versionUBL', '2.0'))
+		document.appendChild(createElement(dom, 'tipoDocumentoEmisor', '6'))
+		document.appendChild(createElement(dom, 'resumenId', self._get_next_ra_code()))
+		document.appendChild(createElement(dom, 'fechaEmisionComprobante', self.invoice_date))
+		document.appendChild(createElement(dom, 'fechaGeneracionResumen', fields.Date.today()))
+		document.appendChild(createElement(dom, 'razonSocialEmisor', self.company_id.company_registry))
+		document.appendChild(createElement(dom, 'correoEmisor', self.company_id.email))
+		document.appendChild(createElement(dom, 'inHabilitado', '1'))
+		document.appendChild(createElement(dom, 'resumenTipo', 'RA'))
+
+		resumen = dom.createElement('ResumenItem')
+		document.appendChild(resumen)
+
+		resumen.appendChild(createElement(dom, 'numeroFila', '1'))
+		resumen.appendChild(createElement(dom, 'tipoDocumento', self.sunat_type))
+		resumen.appendChild(createElement(dom, 'serieDocumentoBaja', self.name.split('-')[0]))
+		resumen.appendChild(createElement(dom, 'numeroDocumentoBaja', self.name.split('-')[1]))
+		resumen.appendChild(createElement(dom, 'motivoBaja', 'ANULACION'))
+
+		soapCommand.appendChild(document)
 
 	def writeXmlDocument(self, dom, soapCommand):
 		if not self.journal_id.sunat_document_type:
@@ -362,6 +413,66 @@ class AccountMove(models.Model):
 			self.efact_state = 'declared'
 		else:
 			raise UserError('Ocurrio un error en la comunicación con el servidor, Nro: ' + str(resp.status_code) + '\n' + 'WebService: ' +iws)
+
+	# solicitar baja
+	def bz_baja(self):
+		if (fields.Date.today() - self.invoice_date).days >= 7:
+			raise UserError('No puede comunicar la baja de comprobantes con fecha mayor a 7 días')
+
+		headers = {
+			"Accept": "text/xml",
+			"Content-Type": "text/xml",
+		}
+
+		dom, command, soapCommand = self.signOnLineSummaryCmd()
+		soapCommand.setAttribute('declare-sunat', '1')
+		soapCommand.setAttribute('replicate', '1')
+		soapCommand.setAttribute('output', '')
+		self.writeXmlDocumentCancel(dom, soapCommand)
+
+		cdata = dom.createCDATASection(soapCommand.toprettyxml())
+		command.appendChild(cdata)
+
+		xml = dom.toprettyxml()
+		print(xml)
+
+		ir = self.env['ir.config_parameter'].sudo()
+		iws = ir.get_param('cv_bizlink.bz_ws')
+		iuser = ir.get_param('cv_bizlink.bz_user')
+		ipass = ir.get_param('cv_bizlink.bz_pass')
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+
+		if resp.status_code == 200:
+			dom = parseString(resp.text)
+			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
+			print(dom.toprettyxml())
+			statuses = dom.documentElement.getElementsByTagName('status')
+			if statuses.length > 1:
+				status = statuses[1].firstChild.nodeValue
+			else:
+				status = statuses[0].firstChild.nodeValue
+
+			if status == 'ERROR':
+				msgs = dom.documentElement.getElementsByTagName('messages')
+				message = ''
+				for m in msgs:
+					message = message + m.getElementsByTagName('descriptionStatus')[0].firstChild.wholeText + '\n'
+					message = message + m.getElementsByTagName('descriptionDetail')[0].firstChild.wholeText + '\n'
+					message = message + '=============================================' + '\n'
+				raise UserError(message)
+			else:
+				self.cancel_date = fields.Date.today()
+				self.cancel_id = self._get_next_ra_code()
+				self.efact_state = 'cancel'
+		else:
+			raise UserError('Ocurrio un error en la comunicación con el servidor, Nro: ' + str(resp.status_code) + '\n' + 'WebService: ' +iws)
+
+	def _get_next_ra_code(self):
+		move = self.env['account.move'].search([('cancel_id', '!=', False), ('cancel_date', '=', fields.Date.today())], order="id desc", limit=1)
+		id = '01'
+		if move:
+			id = str(int(move[0].cancel_id.split('-')[2]) + 1).zfill(2)
+		return 'RA-' + datetime.now(timezone('America/Lima')).strftime('%Y%m%d') + '-' + id
 
 	# firmar, publicar y declarar
 	def bz_publish_and_declare(self):
