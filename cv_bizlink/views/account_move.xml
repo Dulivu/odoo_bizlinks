@@ -11,6 +11,7 @@
                 <button name="bz_declare" type="object" class="oe_highlight" string="[BZ] Declarar" help="Solicita declaración a SUNAT, la factura debe ser previamente publicada" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
                 <button name="bz_publish_and_declare" class="oe_highlight" type="object" string="[BZ] Publicar y Declarar" help="Publica la factura en el portal de bizlinks y solicita la declaración a SUNAT" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published', 'cancel', 'declared'])]}"/>
                 <button name="bz_cancel" type="object" string="[BZ] Anular" help="Anula la factura publicada, no se puede anular una factura que no fue previamente publicada o que ya fue declarada a SUNAT" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
+                <button name="bz_baja" type="object" string="[BZ] Anular" help="Anula la factura declarada, Comunica la baja del comprobante a SUNAT, sólo se puede comunicar la baja de comprobantes que hayan sido entregados al cliente y no sean mayores en 7 días a la fecha de la factura" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','published'])]}"/>
                 <button name="bz_status_query" type="object" string="[BZ] Status" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel'])]}"/>
             </xpath>
 
@@ -23,6 +24,8 @@
                     <field name="bz_file_pdf_url" widget="url" readonly="1"/>
                     <field name="bz_file_gif_url" widget="url" readonly="1"/>
                     <field name="bz_file_qr_url" widget="url" readonly="1"/>
+
+                    <field name="cancel_id" readonly="1"/>
                 </group>
             </xpath>
         </field>
