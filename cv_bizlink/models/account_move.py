@@ -14,7 +14,7 @@ def createElement(dom, tag, text=False):
 		el.appendChild(tx)
 	return el
 
-def createSoapEnvelope(self):
+def createSoapEnvelope():
 	dom = parseString('<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ws="http://ws.ce.ebiz.com/"></soapenv:Envelope>')
 	header = dom.createElement('soapenv:Header')
 	command = dom.createElement('command')
