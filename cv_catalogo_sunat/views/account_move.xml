@@ -16,7 +16,7 @@
 
             <field name="ref" position="after">
                 <field name="sunat_type" invisible="1"/>
-                <field name="sunat_ef_type" attrs="{'invisible': [('sunat_type', 'in', ['07', '08'])], 'required': [('sunat_type', 'in', ['01','03'])]}"/>
+                <field name="sunat_ef_type" attrs="{'invisible': [('sunat_type', 'in', ['07', '08', '-'])], 'required': [('sunat_type', 'in', ['01','03'])]}"/>
                 <field name="sunat_nc_type" attrs="{'invisible': [('sunat_type', '!=', '07')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
                 <field name="sunat_nd_type" attrs="{'invisible': [('sunat_type', '!=', '08')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
             </field>
