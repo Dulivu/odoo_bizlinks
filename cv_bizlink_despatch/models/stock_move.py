@@ -124,9 +124,9 @@ class StockPicking(models.Model):
         #document.appendChild(createElement(dom, 'tipoDocumentoConductor', self.sunat_transfer_id.vat))
         # dirección del punto de llegada y partida
         document.appendChild(createElement(dom, 'ubigeoPtoLlegada', self.partner_id.ubigeo_id.code))
-        document.appendChild(createElement(dom, 'direccionPtoLlegada', self.partner_id.street or self.partner_id.street_name))
+        document.appendChild(createElement(dom, 'direccionPtoLlegada', self.partner_id.street_name or self.partner_id.street))
         document.appendChild(createElement(dom, 'ubigeoPtoPartida', self.picking_type_id.warehouse_id.partner_id.ubigeo_id.code))
-        document.appendChild(createElement(dom, 'direccionPtoPartida', self.picking_type_id.warehouse_id.partner_id.street))
+        document.appendChild(createElement(dom, 'direccionPtoPartida', sself.picking_type_id.warehouse_id.partner_id.street_name or self.picking_type_id.warehouse_id.partner_id.street))
 
         sequence = 1
         for line in self.move_line_ids_without_package:
