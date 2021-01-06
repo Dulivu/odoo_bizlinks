@@ -58,7 +58,7 @@ class AccountMoveND(models.TransientModel):
             'partner_id': move.partner_id.id,
             'type': 'out_invoice',
             'currency_id': move.currency_id.id,
-            'reversed_entry_id': move.id,
+            #'reversed_entry_id': move.id,
             'invoice_line_ids': [(0, 0, {
                 'product_id': self.env.ref('cv_bizlink.default_product_nd')[0].id,
                 'name': 'Ajuste al precio, factura %s' % move.name,
