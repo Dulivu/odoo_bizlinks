@@ -89,7 +89,7 @@ class StockPicking(models.Model):
         document.appendChild(createElement(dom, 'serieNumeroGuia', self.name)) # T###-NNNNNNNN
 
         # datos SUNAT
-        document.appendChild(createElement(dom, 'fechaEmisionGuia', fields.Date.from_string(self.date)))
+        document.appendChild(createElement(dom, 'fechaEmisionGuia', fields.Date.from_string(fields.Datetime.context_timestamp(self, self.date))))
         document.appendChild(createElement(dom, 'tipoDocumentoGuia', '09')) # Cat. 09 - GUIA DE REMISION REMITENTE
         # documento relacionado (C)
         #document.appendChild(createElement(dom, 'numeroDocumentoRelacionado', self.origin))
@@ -152,7 +152,6 @@ class StockPicking(models.Model):
         command.appendChild(cdata)
 
         xml = dom.toprettyxml()
-        print(xml)
 
         ir = self.env['ir.config_parameter'].sudo()
         iws = ir.get_param('cv_bizlink.bz_ws')
