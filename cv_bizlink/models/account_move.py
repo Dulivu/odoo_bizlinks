@@ -51,6 +51,17 @@ class AccountMove(models.Model):
 	cancel_date = fields.Date('Fecha de Baja')
 	cancel_id = fields.Char('Resumen ID')
 
+	def _get_default_journal_id(self):
+		sunat_type = self.env.context.get('sunat_type') or False
+		if sunat_type:
+			journal = self.env['account.journal'].search([('sunat_document_type', '=', sunat_type)])
+			return journal[0].id if journal else False
+		else:
+			journal = self.env['account.journal'].search([('type', '=', 'sale' if self.type else 'purchase')])
+			return journal[0].id if journal else False
+
+	journal_id = fields.Many2one(default=_get_default_journal_id)
+
 	def cancelCmd(self):
 		vat = self.company_id.vat
 
@@ -255,7 +266,7 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'tipoMoneda', self.currency_id.name)) # catalogo 2
 		if self.sunat_type == '01' or self.sunat_type == '03':
 			document.appendChild(createElement(dom, 'tipoOperacion', self.sunat_ef_type)) # catalogo 51
-		if self.sunat_type == '07':
+		if self.sunat_type == '07' or self.sunat_type == '08':
 			document.appendChild(createElement(dom, 'codigoSerieNumeroAfectado', self.sunat_nc_type))
 			if self.reversed_entry_id:
 				ref = self.reversed_entry_id.name
@@ -267,12 +278,7 @@ class AccountMove(models.Model):
 			document.appendChild(createElement(dom, 'serieNumeroAfectado', ref))
 			document.appendChild(createElement(dom, 'motivoDocumento', self.ref.split(', ')[1] or '-'))
 			document.appendChild(createElement(dom, 'tipoDocumentoReferenciaPrincipal', ref_type))
-			document.appendChild(createElement(dom, 'numeroDocumentoReferenciaPrincipal', ref))
-		if self.sunat_type == '08':
-			document.appendChild(createElement(dom, 'codigoSerieNumeroAfectado', self.sunat_nd_type))
-			ref = search('[a-zA-Z0-9]{4}-[0-9]{8}', self.ref)
-			ref = ref.group(0) if ref else '-'
-			document.appendChild(createElement(dom, 'serieNumeroAfectado', ref))
+			document.appendChild(createElement(dom, 'numeroDocumentoReferenciaPrincipal', ref))		
 
 		# datos del emisor
 		document.appendChild(createElement(dom, 'tipoDocumentoEmisor', '6')) # catalogo 6 (documento de identidad)
@@ -627,6 +633,14 @@ class AccountMove(models.Model):
 				self.bz_file_qr_url = eQrFileUrl[0].firstChild.nodeValue if eQrFileUrl else False
 		else:
 			raise UserError('Ocurrio un error en la comunicación con el servidor, Nro: ' + str(resp.status_code) + '\n' + 'WebService: ' +iws)
+
+	def action_nd_reverse(self):
+		action = self.env.ref('cv_bizlink.action_view_account_move_nd_reversal').read()[0]
+
+		if self.is_invoice():
+			action['name'] = _('Nota de Débito')
+
+		return action
 
 
 class AccountMoveLine(models.Model):
