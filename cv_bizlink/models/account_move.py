@@ -216,7 +216,7 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'tipoDocumentoEmisor', '6'))
 		document.appendChild(createElement(dom, 'resumenId', self._get_next_ra_code()))
 		document.appendChild(createElement(dom, 'fechaEmisionComprobante', self.invoice_date))
-		document.appendChild(createElement(dom, 'fechaGeneracionResumen', fields.Date.today()))
+		document.appendChild(createElement(dom, 'fechaGeneracionResumen', fields.Date.context_today(self)))
 		document.appendChild(createElement(dom, 'razonSocialEmisor', self.company_id.company_registry))
 		document.appendChild(createElement(dom, 'correoEmisor', self.company_id.email))
 		document.appendChild(createElement(dom, 'inHabilitado', '1'))
@@ -440,7 +440,6 @@ class AccountMove(models.Model):
 		command.appendChild(cdata)
 
 		xml = dom.toprettyxml()
-		print(xml)
 
 		ir = self.env['ir.config_parameter'].sudo()
 		iws = ir.get_param('cv_bizlink.bz_ws')
@@ -467,14 +466,14 @@ class AccountMove(models.Model):
 					message = message + '=============================================' + '\n'
 				raise UserError(message)
 			else:
-				self.cancel_date = fields.Date.today()
+				self.cancel_date = fields.Date.context_today(self)
 				self.cancel_id = self._get_next_ra_code()
 				self.efact_state = 'cancel'
 		else:
 			raise UserError('Ocurrio un error en la comunicación con el servidor, Nro: ' + str(resp.status_code) + '\n' + 'WebService: ' +iws)
 
 	def _get_next_ra_code(self):
-		move = self.env['account.move'].search([('cancel_id', '!=', False), ('cancel_date', '=', fields.Date.today())], order="id desc", limit=1)
+		move = self.env['account.move'].search([('cancel_id', '!=', False), ('cancel_date', '=', fields.Date.context_today(self))], order="id desc", limit=1)
 		id = '01'
 		if move:
 			id = str(int(move[0].cancel_id.split('-')[2]) + 1).zfill(2)
