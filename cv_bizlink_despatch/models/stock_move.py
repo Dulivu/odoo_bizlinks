@@ -162,7 +162,6 @@ class StockPicking(models.Model):
         if resp.status_code == 200:
             dom = parseString(resp.text)
             dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
-            print(dom.toprettyxml())
             statuses = dom.documentElement.getElementsByTagName('status')
             if statuses.length > 1:
                 status = statuses[1].firstChild.nodeValue
