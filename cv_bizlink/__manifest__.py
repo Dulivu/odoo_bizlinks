@@ -14,5 +14,6 @@ Consume webservices de Bizlinks
     'data': [
         'views/account_move.xml',
         'views/res_settings.xml',
+        'views/account_journal.xml',
     ],
 }
