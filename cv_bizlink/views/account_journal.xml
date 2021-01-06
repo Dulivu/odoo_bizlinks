@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="view_account_journal_form" model="ir.ui.view">
+        <field name="name">cv.account.journal.form</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form" />
+        <field name="arch" type="xml">
+            <field name="currency_id" position="after">
+                <field name="default_nc_journal_id"/>
+                <field name="default_nd_journal_id"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="default_product_nd" model="product.template">
+        <field name="name">Ajuste al precio</field>
+        <field name="type">service</field>
+    </record>
+</odoo>

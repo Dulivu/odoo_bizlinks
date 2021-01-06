@@ -1,18 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="account.action_move_out_invoice_type" model="ir.actions.act_window">
+        <field name="domain">[('type', '=', 'out_invoice'), ('sunat_type', '=', '01')]</field>
+        <field name="context">{'default_type': 'out_invoice', 'default_sunat_type': '01', 'sunat_type': '01'}</field>
+    </record>
+
+    <record id="action_boletas" model="ir.actions.act_window">
+        <field name="name">Boletas</field>
+        <field name="res_model">account.move</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('type', '=', 'out_invoice'), ('sunat_type', '=', '03')]</field>
+        <field name="context">{'default_type': 'out_invoice', 'default_sunat_type': '03', 'sunat_type': '03'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea una boleta de cliente
+            </p><p>
+                Crear boletas, registrar pagos y mantener el rastro de todas las conversaciones con sus clientes
+            </p>
+        </field>
+    </record>
+
+    <record id="action_nota_credito" model="ir.actions.act_window">
+        <field name="name">Notas de crédito</field>
+        <field name="res_model">account.move</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('type', '=', 'out_refund'), ('sunat_type', '=', '07')]</field>
+        <field name="context">{'default_type': 'out_refund', 'default_sunat_type': '07', 'sunat_type': '07'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea una nota de crédito
+            </p><p>
+                Crear notas de crédito, registrar pagos y mantener el rastro de todas las conversaciones con sus clientes
+            </p>
+        </field>
+    </record>
+
+    <record id="action_nota_debito" model="ir.actions.act_window">
+        <field name="name">Notas de débito</field>
+        <field name="res_model">account.move</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('type', '=', 'out_invoice'), ('sunat_type', '=', '08')]</field>
+        <field name="context">{'default_type': 'out_invoice', 'default_sunat_type': '08', 'sunat_type': '08'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea una nota de débito
+            </p><p>
+                Crear notas de débito, registrar pagos y mantener el rastro de todas las conversaciones con sus clientes
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_boleta" name="Boletas" action="action_boletas" parent="account.menu_finance_receivables" sequence="2"/>
+    <menuitem id="account.menu_action_move_out_refund_type" name="Notas de crédito" action="action_nota_credito" parent="account.menu_finance_receivables" sequence="3"/>
+    <menuitem id="menu_nota_debito" name="Notas de débito" action="action_nota_debito" parent="account.menu_finance_receivables" sequence="4"/>
+    <menuitem id="account.menu_action_move_out_receipt_type" name="Recepciones" action="account.action_move_out_receipt_type" parent="account.menu_finance_receivables" sequence="5"/>
+
 	<record id="view_account_move_form" model="ir.ui.view">
         <field name="name">cv.account.move.form</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form" />
         <field name="arch" type="xml">
+            <button name="action_reverse" position="attributes">
+                <!--<attribute name="attrs">{'invisible': ['|', ('type', 'not in', ('in_invoice')), ('state', '!=', 'posted')]}</attribute>-->
+                <attribute name="attrs">{'invisible': True}</attribute>
+            </button>
+
             <xpath expr="//header/button[@name='action_invoice_register_payment']" position="after">
                 <field name="efact_state" invisible="1"/>
-            	<button name="bz_publish" type="object" class="oe_highlight" string="[BZ] Publicar" help="Publica la factura en el portal de bizlinks" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published','cancel','declared'])]}"/>
-                <button name="bz_declare" type="object" class="oe_highlight" string="[BZ] Declarar" help="Solicita declaración a SUNAT, la factura debe ser previamente publicada" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
-                <button name="bz_publish_and_declare" class="oe_highlight" type="object" string="[BZ] Publicar y Declarar" help="Publica la factura en el portal de bizlinks y solicita la declaración a SUNAT" attrs="{'invisible': ['|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published', 'cancel', 'declared'])]}"/>
-                <button name="bz_cancel" type="object" string="[BZ] Anular" help="Anula la factura publicada, no se puede anular una factura que no fue previamente publicada o que ya fue declarada a SUNAT" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','declared'])]}"/>
-                <button name="bz_baja" type="object" string="[BZ] Anular" help="Anula la factura declarada, Comunica la baja del comprobante a SUNAT, sólo se puede comunicar la baja de comprobantes que hayan sido entregados al cliente y no sean mayores en 7 días a la fecha de la factura" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel','published'])]}"/>
-                <button name="bz_status_query" type="object" string="[BZ] Status" attrs="{'invisible': [('efact_state', 'in', ['unpublished','cancel'])]}"/>
+                <field name="sunat_type" invisible="1"/>
+            	<button name="bz_publish" type="object" class="oe_highlight" string="[BZ] Publicar" help="Publica la factura en el portal de bizlinks" attrs="{'invisible': ['|', '|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published','cancel','declared']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="bz_declare" type="object" class="oe_highlight" string="[BZ] Declarar" help="Solicita declaración a SUNAT, la factura debe ser previamente publicada" attrs="{'invisible': ['|', ('efact_state', 'in', ['unpublished','cancel','declared']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="bz_publish_and_declare" class="oe_highlight" type="object" string="[BZ] Publicar y Declarar" help="Publica la factura en el portal de bizlinks y solicita la declaración a SUNAT" attrs="{'invisible': ['|', '|', ('state', 'in', ['cancel','draft']), ('efact_state', 'in', ['published', 'cancel', 'declared']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="bz_cancel" type="object" string="[BZ] Anular" help="Anula la factura publicada, no se puede anular una factura que no fue previamente publicada o que ya fue declarada a SUNAT" attrs="{'invisible': ['|', ('efact_state', 'in', ['unpublished','cancel','declared']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="bz_baja" type="object" string="[BZ] Anular" help="Anula la factura declarada, Comunica la baja del comprobante a SUNAT, sólo se puede comunicar la baja de comprobantes que hayan sido entregados al cliente y no sean mayores en 7 días a la fecha de la factura" attrs="{'invisible': ['|', ('efact_state', 'in', ['unpublished','cancel','published']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="bz_status_query" type="object" string="[BZ] Status" attrs="{'invisible': ['|', ('efact_state', 'in', ['unpublished','cancel']), ('type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+
+                <button name="action_reverse" string="Nota de crédito" type="object" groups="account.group_account_invoice" attrs="{'invisible': ['|', ('type', 'not in', ('in_invoice','out_invoice')), ('state', '!=', 'posted')]}"/>
+                <button name="action_nd_reverse" string="Nota de débito" type="object" groups="account.group_account_invoice" attrs="{'invisible': ['|', ('type', 'not in', ('out_invoice')), ('state', '!=', 'posted')]}"/>
             </xpath>
 
             <xpath expr="//page[@id='other_tab']/group" position="inside">
@@ -28,6 +95,11 @@
                     <field name="cancel_id" readonly="1"/>
                 </group>
             </xpath>
+
+            <field name="journal_id" position="attributes">
+                <!-- ('sunat_document_type', '=', context.get('sunat_type',False)) -->
+                <attribute name="domain">[('type','=?',invoice_filter_type_domain)]</attribute>
+            </field>
         </field>
     </record>
 
@@ -46,5 +118,42 @@
                 <attribute name="decoration-success">efact_state == 'published'</attribute>
             </xpath>
         </field>
+    </record>
+
+    <!-- NOTA DE DEBITO -->
+
+    <record id="view_account_nd_reversal" model="ir.ui.view">
+        <field name="name">account.move.nd.form</field>
+        <field name="model">account.move.debit.note</field>
+        <field name="arch" type="xml">
+            <form string="Entrada de Nota de Débito">
+                <field name="residual" invisible="1"/>
+                <field name="move_type" invisible="1"/>
+                <group>
+                    <group>
+                        <field name="reason"/>
+                        <field name="amount"/>
+                        <field name="date"/>
+                    </group>
+                    <group>
+                    <field name="journal_id"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string='Reverse' name="reverse_moves" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_view_account_move_nd_reversal" model="ir.actions.act_window">
+        <field name="name">Reverse Moves</field>
+        <field name="res_model">account.move.debit.note</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_account_nd_reversal"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="account.model_account_move" />
+        <field name="binding_view_types">list</field>
     </record>
 </odoo>
