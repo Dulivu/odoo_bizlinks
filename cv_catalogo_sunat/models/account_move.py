@@ -6,7 +6,7 @@ from odoo import api, fields, models, _
 class AccountMove(models.Model):
 	_inherit = 'account.move'
 
-	sunat_type = fields.Char('Tipo SUNAT', compute='_get_sunat_type')
+	sunat_type = fields.Char('Tipo SUNAT', compute='_get_sunat_type', store=True)
 
 	@api.depends('journal_id')
 	def _get_sunat_type(self):
