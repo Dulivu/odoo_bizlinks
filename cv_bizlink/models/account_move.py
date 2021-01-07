@@ -344,8 +344,8 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		#resp = requests.post('http://testing.bizlinks.com.pe/integrador21/ws/invoker', data=xml, headers=headers, auth=('SFEDFPERU', '20546193242'), timeout=(5,60))
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		#resp = requests.post('http://testing.bizlinks.com.pe/integrador21/ws/invoker', data=xml, headers=headers, auth=('SFEDFPERU', '20546193242'), timeout=(5,90))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
 			dom = parseString(dom.documentElement.getElementsByTagName('return')[0].firstChild.nodeValue)
