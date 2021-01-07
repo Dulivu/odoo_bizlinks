@@ -398,7 +398,7 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
@@ -445,7 +445,7 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
@@ -502,7 +502,7 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
@@ -556,7 +556,7 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
@@ -596,7 +596,7 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,60))
+		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
