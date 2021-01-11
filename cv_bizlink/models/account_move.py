@@ -311,6 +311,8 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'totalIgv', self.amount_tax))
 		document.appendChild(createElement(dom, 'totalVenta', self.amount_total))
 		document.appendChild(createElement(dom, 'totalImpuestos', self.amount_tax))
+		descuento = createElement(dom, 'totalDescuentos', '0.0')
+		document.appendChild(descuento)
 		cla = self.env['ir.config_parameter'].sudo().get_param('cv_bizlink.bz_codigo_local_anexo')
 		document.appendChild(createElement(dom, 'codigoLocalAnexoEmisor', cla)) # Codigo asignado por sunat
 		#document.appendChild(createElement(dom, 'codigoLeyenda_1', '6')) # catalogo 15
@@ -318,6 +320,12 @@ class AccountMove(models.Model):
 
 		for line in self.invoice_line_ids:
 			line.writeXmlItem(dom, document)
+			
+		totalDiscount = 0
+		for line in self.invoice_line_ids:
+			totalDiscount = (totalDiscount + line.descuento_fijo) * line.quantity
+		if totalDiscount > 0:
+			descuento.firstChild.replaceWholeText(totalDiscount)
 
 		soapCommand.appendChild(document)
 
@@ -651,6 +659,11 @@ class AccountMoveLine(models.Model):
 		for line in self:
 			item = createElement(dom, 'item')
 			doc.appendChild(item)
+			
+			# quitar descuento al precio unitario
+			price_unit = line.price_unit - line.descuento_fijo if line.descuento_fijo else line.price_unit * ((100 - line.discount) / 100)
+			discount = line.price_unit - price_unit
+			line.descuento_fijo = discount
 
 			price_unit_tax = line.price_unit
 			subtotal_tax = line.price_subtotal
@@ -659,6 +672,7 @@ class AccountMoveLine(models.Model):
 			for tax in line.tax_ids:
 				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and tax.price_include:
 					price_unit_no_tax = price_unit_no_tax / ((100 + tax.amount) / 100)
+					discount = discount / ((100 + tax.amount) / 100)
 					subtotal_no_tax = round(line.quantity * price_unit_no_tax, 2)
 					subtotal_tax = subtotal_no_tax * (100 + tax.amount) / 100
 
@@ -679,6 +693,7 @@ class AccountMoveLine(models.Model):
 			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', subtotal_no_tax))
 			item.appendChild(createElement(dom, 'codigoRazonExoneracion', line.sunat_tax_impact_type)) # Catalogo 7, codigo de afectacion del IGV
 			item.appendChild(createElement(dom, 'importeIgv', round(subtotal_tax - subtotal_no_tax, 2)))
+			item.appendChild(createElement(dom, 'importeDescuento', round(discount * line.quantity, 2))) # TODO: Ahora refleja descuento sin IGV
 			item.appendChild(createElement(dom, 'montoBaseIgv', subtotal_no_tax))
 			item.appendChild(createElement(dom, 'importeTotalImpuestos', round((price_unit_tax - price_unit_no_tax) * line.quantity, 2)))
 			igvs = line.tax_ids.filtered(lambda r: r.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id)
