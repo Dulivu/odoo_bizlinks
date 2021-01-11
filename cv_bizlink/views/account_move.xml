@@ -100,6 +100,10 @@
                 <!-- ('sunat_document_type', '=', context.get('sunat_type',False)) -->
                 <attribute name="domain">[('type','=?',invoice_filter_type_domain)]</attribute>
             </field>
+		
+	    <field name="discount" position="after">
+                <field name="descuento_fijo"/>
+            </field>
         </field>
     </record>
 
