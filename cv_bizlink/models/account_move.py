@@ -654,6 +654,7 @@ class AccountMoveLine(models.Model):
 	_inherit = "account.move.line"
 
 	sequence = fields.Integer(default=1)
+	descuento_fijo = fields.Float('Desc.', digits=(12,2))
 
 	def writeXmlItem(self, dom, doc):
 		for line in self:
