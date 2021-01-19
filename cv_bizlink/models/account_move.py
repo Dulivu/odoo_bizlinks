@@ -326,6 +326,8 @@ class AccountMove(models.Model):
 			totalDiscount = (totalDiscount + line.descuento_fijo) * line.quantity
 		if totalDiscount > 0:
 			descuento.firstChild.replaceWholeText(totalDiscount)
+		else:
+			document.removeChild(descuento)
 
 		soapCommand.appendChild(document)
 
@@ -694,7 +696,8 @@ class AccountMoveLine(models.Model):
 			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', subtotal_no_tax))
 			item.appendChild(createElement(dom, 'codigoRazonExoneracion', line.sunat_tax_impact_type)) # Catalogo 7, codigo de afectacion del IGV
 			item.appendChild(createElement(dom, 'importeIgv', round(subtotal_tax - subtotal_no_tax, 2)))
-			item.appendChild(createElement(dom, 'importeDescuento', round(line.descuento_fijo * line.quantity, 2))) # TODO: Ahora refleja descuento sin IGV
+			if line.descuento_fijo:
+				item.appendChild(createElement(dom, 'importeDescuento', round(line.descuento_fijo * line.quantity, 2))) # TODO: Ahora refleja descuento sin IGV
 			item.appendChild(createElement(dom, 'montoBaseIgv', subtotal_no_tax))
 			item.appendChild(createElement(dom, 'importeTotalImpuestos', round((price_unit_tax - price_unit_no_tax) * line.quantity, 2)))
 			igvs = line.tax_ids.filtered(lambda r: r.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id)
