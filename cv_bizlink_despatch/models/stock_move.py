@@ -43,7 +43,7 @@ class StockPicking(models.Model):
     bz_signatura_value = fields.Char('Firma', copy=False)
     bz_hash_code = fields.Char('Codigo HASH', copy=False)
     bz_file_sign_url = fields.Char('Ruta XML', copy=False)
-    bz_file_pdf_url = fields.Char('Factura PDF', copy=False)
+    bz_file_pdf_url = fields.Char('Guía PDF', copy=False)
 
     @api.depends('move_line_ids_without_package')
     def _compute_total_weigth(self):
