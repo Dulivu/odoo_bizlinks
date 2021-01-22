@@ -31,6 +31,44 @@ def createSoapEnvelope():
 
 	return dom, header, command
 
+def numberToLetters(num):
+	parts = str(float(num)).split('.')
+	num = int(parts[0])
+	if num > 999999:
+		raise UserError('El monto es demasiado alto')
+	lnum = [int(x) for x in str(num)]
+	lnum = lnum[::-1]
+	letters = list()
+
+	UNIDADES = ('', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve')
+	DECENAS = ('diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho', 'diecinueve')
+	DIECES = ('', '', '', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa')
+	CIENTOS = ('', 'ciento', 'doscientos', 'trescientos', 'cuatroscientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos')
+
+	for i in range(len(lnum)):
+		if i in [0, 3]: # UNIDADES
+			if i == 3:
+				letters.append('mil')
+			if not(lnum[i] == 1 and i == 3):
+				letters.append(UNIDADES[lnum[i]])
+		if i in [1, 4]: # DECENAS
+			if lnum[i] == 1:
+				letters[-1] = DECENAS[lnum[i-1]]
+			elif lnum[i] == 2:
+				letters[-1] = 'veinti%s' % UNIDADES[lnum[i-1]] if lnum[0] > 0 else 'veinte'
+			elif lnum[i] > 2:
+				letters.append('y' if lnum[i-1] > 0  else '')
+				letters.append(DIECES[lnum[i]])
+		if i in [2, 5]: # CENTENAS
+			cos, res = divmod(num, 100)
+			if cos == 1 and res == 0:
+				letters.append('cien')
+			else:
+				letters.append(CIENTOS[lnum[i]])
+	letters = list(filter(lambda x: x, letters))
+	return ' '.join(letters[::-1]).strip() + ' con ' + parts[1].zfill(2) + '/100'
+
+
 class AccountMove(models.Model):
 	_inherit = 'account.move'
 
@@ -311,6 +349,9 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'totalIgv', self.amount_tax))
 		document.appendChild(createElement(dom, 'totalVenta', self.amount_total))
 		document.appendChild(createElement(dom, 'totalImpuestos', self.amount_tax))
+		document.appendChild(createElement(dom, 'codigoLeyenda_1', '1000'))
+		document.appendChild(createElement(dom, 'textoLeyenda_1', numberToLetters(self.amount_total).upper()))
+		
 		descuento = createElement(dom, 'totalDescuentos', '0.0')
 		document.appendChild(descuento)
 		cla = self.env['ir.config_parameter'].sudo().get_param('cv_bizlink.bz_codigo_local_anexo')
@@ -318,8 +359,10 @@ class AccountMove(models.Model):
 		#document.appendChild(createElement(dom, 'codigoLeyenda_1', '6')) # catalogo 15
 		#document.appendChild(createElement(dom, 'textoLeyenda_1', '6'))
 
+		sequence = 1
 		for line in self.invoice_line_ids:
-			line.writeXmlItem(dom, document)
+			line.writeXmlItem(dom, document, sequence)
+			sequence = sequence + 1
 			
 		totalDiscount = 0
 		for line in self.invoice_line_ids:
@@ -658,7 +701,7 @@ class AccountMoveLine(models.Model):
 	sequence = fields.Integer(default=1)
 	descuento_fijo = fields.Float('Desc.', digits=(12,2))
 
-	def writeXmlItem(self, dom, doc):
+	def writeXmlItem(self, dom, doc, sequence):
 		for line in self:
 			item = createElement(dom, 'item')
 			doc.appendChild(item)
@@ -685,7 +728,7 @@ class AccountMoveLine(models.Model):
 					price_unit_tax = price_unit_tax * ((100 + tax.amount) / 100)
 					subtotal_tax = round(line.quantity * price_unit_tax, 2)
 
-			item.appendChild(createElement(dom, 'numeroOrdenItem', line.sequence))
+			item.appendChild(createElement(dom, 'numeroOrdenItem', sequence))
 			item.appendChild(createElement(dom, 'codigoProducto', line.product_id.default_code)) # CAPS01 en caso el concepto sea porcentaje de servicio
 			item.appendChild(createElement(dom, 'descripcion', line.name)) # debe describir completamente el producto, marca
 			item.appendChild(createElement(dom, 'cantidad', line.quantity))
