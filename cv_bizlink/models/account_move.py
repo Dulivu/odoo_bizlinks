@@ -88,6 +88,14 @@ class AccountMove(models.Model):
 
 	cancel_date = fields.Date('Fecha de Baja')
 	cancel_id = fields.Char('Resumen ID')
+	discount_total = fields.Float('Descuento Total', digits=(12,2), compute='_get_total_discount')
+
+	def _get_total_discount(self):
+		for me in self:
+			total = 0
+			for line in me.invoice_line_ids:
+				total = total + line.importeDescuento
+			me.discount_total = total
 
 	def _get_default_journal_id(self):
 		sunat_type = self.env.context.get('sunat_type') or False
@@ -278,9 +286,9 @@ class AccountMove(models.Model):
 			raise UserError('La compañía no tiene registrado un ubigeo')
 		if not self.company_id.country_id:
 			raise UserError('La compañía no tiene registrado un país')
+
 		if not self.partner_id.vat:
 			raise UserError('El cliente no tiene registrado documento de identificación')
-		
 		if self.sunat_type != '03' and not self.partner_id.ubigeo_id:
 			raise UserError('El cliente no tiene registrado un ubigeo')
 		if self.sunat_type != '03' and not self.partner_id.country_id:
@@ -304,6 +312,9 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'tipoMoneda', self.currency_id.name)) # catalogo 2
 		if self.sunat_type == '01' or self.sunat_type == '03':
 			document.appendChild(createElement(dom, 'tipoOperacion', self.sunat_ef_type)) # catalogo 51
+			if self.ref:
+				document.appendChild(createElement(dom, 'tipoReferencia_1', '09'))
+				document.appendChild(createElement(dom, 'numeroDocumentoReferencia_1', self.ref))
 		if self.sunat_type == '07' or self.sunat_type == '08':
 			document.appendChild(createElement(dom, 'codigoSerieNumeroAfectado', self.sunat_nc_type))
 			if self.reversed_entry_id:
@@ -316,7 +327,7 @@ class AccountMove(models.Model):
 			document.appendChild(createElement(dom, 'serieNumeroAfectado', ref))
 			document.appendChild(createElement(dom, 'motivoDocumento', self.ref.split(', ')[1] or '-'))
 			document.appendChild(createElement(dom, 'tipoDocumentoReferenciaPrincipal', ref_type))
-			document.appendChild(createElement(dom, 'numeroDocumentoReferenciaPrincipal', ref))		
+			document.appendChild(createElement(dom, 'numeroDocumentoReferenciaPrincipal', ref))
 
 		# datos del emisor
 		document.appendChild(createElement(dom, 'tipoDocumentoEmisor', '6')) # catalogo 6 (documento de identidad)
@@ -349,28 +360,19 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'totalIgv', self.amount_tax))
 		document.appendChild(createElement(dom, 'totalVenta', self.amount_total))
 		document.appendChild(createElement(dom, 'totalImpuestos', self.amount_tax))
+		if self.discount_type == '2' and self.discount_total > 0:
+			document.appendChild(createElement(dom, 'totalDescuentos', round(self.discount_total, 2)))
+
+		# OTROS
 		document.appendChild(createElement(dom, 'codigoLeyenda_1', '1000'))
 		document.appendChild(createElement(dom, 'textoLeyenda_1', numberToLetters(self.amount_total).upper()))
-		
-		descuento = createElement(dom, 'totalDescuentos', '0.0')
-		document.appendChild(descuento)
 		cla = self.env['ir.config_parameter'].sudo().get_param('cv_bizlink.bz_codigo_local_anexo')
 		document.appendChild(createElement(dom, 'codigoLocalAnexoEmisor', cla)) # Codigo asignado por sunat
-		#document.appendChild(createElement(dom, 'codigoLeyenda_1', '6')) # catalogo 15
-		#document.appendChild(createElement(dom, 'textoLeyenda_1', '6'))
 
 		sequence = 1
 		for line in self.invoice_line_ids:
 			line.writeXmlItem(dom, document, sequence)
 			sequence = sequence + 1
-			
-		totalDiscount = 0
-		for line in self.invoice_line_ids:
-			totalDiscount = (totalDiscount + line.descuento_fijo) * line.quantity
-		if totalDiscount > 0:
-			descuento.firstChild.replaceWholeText(totalDiscount)
-		else:
-			document.removeChild(descuento)
 
 		soapCommand.appendChild(document)
 
@@ -397,7 +399,6 @@ class AccountMove(models.Model):
 		iws = ir.get_param('cv_bizlink.bz_ws')
 		iuser = ir.get_param('cv_bizlink.bz_user')
 		ipass = ir.get_param('cv_bizlink.bz_pass')
-		#resp = requests.post('http://testing.bizlinks.com.pe/integrador21/ws/invoker', data=xml, headers=headers, auth=('SFEDFPERU', '20546193242'), timeout=(5,90))
 		resp = requests.post(iws, data=xml, headers=headers, auth=(iuser, ipass), timeout=(5,90))
 		if resp.status_code == 200:
 			dom = parseString(resp.text)
@@ -698,7 +699,6 @@ class AccountMove(models.Model):
 class AccountMoveLine(models.Model):
 	_inherit = "account.move.line"
 
-	sequence = fields.Integer(default=1)
 	descuento_fijo = fields.Float('Desc.', digits=(12,2))
 	price_taxed = fields.Float('Price Taxed', digits=(12,2), compute="_get_price_untaxed")
 	price_untaxed = fields.Float('Price Untaxed', digits=(12,2), compute="_get_price_untaxed")
@@ -715,26 +715,36 @@ class AccountMoveLine(models.Model):
 	@api.depends('price_unit', 'tax_ids')
 	def _get_price_untaxed(self):
 		for line in self:
-			# afectando a la base imponible
 			line.price_untaxed = line.price_unit
 			line.price_untaxed_wd = line.price_unit * ((100-line.discount)/100)
 			line.price_taxed = line.price_unit * ((100-line.discount)/100)
 			for tax in line.tax_ids:
 				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and tax.price_include:
 					line.price_untaxed = line.price_untaxed / ((100 + tax.amount) / 100)
-					line.price_untaxed_wd = line.price_untaxed / ((100 + tax.amount) / 100)
+					line.price_untaxed_wd = line.price_untaxed_wd / ((100 + tax.amount) / 100)
 			
 			for tax in line.tax_ids:
 				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and not tax.price_include:
 					line.price_taxed = line.price_taxed * ((100 + tax.amount) / 100)
 
-			line.importeTotalSinImpuesto = line.price_untaxed_wd * line.quantity # o
-			line.importeBaseDescuento = line.price_untaxed * line.quantity
-			line.importeDescuento = (line.price_untaxed - line.price_untaxed_wd) * line.quantity
+			if line.move_id.discount_type == '1':
+				# afectando a la base imponible
+				line.importeTotalSinImpuesto = line.price_untaxed_wd * line.quantity # o
+				line.importeBaseDescuento = line.price_untaxed * line.quantity
+				line.importeDescuento = (line.price_untaxed - line.price_untaxed_wd) * line.quantity
 
-			line.montoBaseIgv = line.price_untaxed_wd * line.quantity # o
-			line.importeIgv = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
-			line.importeTotalImpuestos = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
+				line.montoBaseIgv = line.price_untaxed_wd * line.quantity # o
+				line.importeIgv = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
+				line.importeTotalImpuestos = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
+			elif line.move_id.discount_type == '2':
+				# no afecto a la base imponible
+				line.importeTotalSinImpuesto = line.price_untaxed * line.quantity # o
+				line.importeBaseDescuento = line.price_untaxed * line.quantity
+				line.importeDescuento = (line.price_untaxed * (100-line.discount)/100) * line.quantity
+
+				line.montoBaseIgv = line.price_untaxed * line.quantity # o
+				line.importeIgv = (line.price_taxed - line.price_untaxed) * line.quantity # i
+				line.importeTotalImpuestos = (line.price_taxed - line.price_untaxed) * line.quantity # i
 
 	@api.onchange('discount')
 	def onChangeDiscount(self):
@@ -744,7 +754,8 @@ class AccountMoveLine(models.Model):
 	@api.onchange('descuento_fijo')
 	def onChangeDiscountF(self):
 		for line in self:
-			line.discount = (line.descuento_fijo / line.price_unit) * 100
+			if line.price_unit:
+				line.discount = (line.descuento_fijo / line.price_unit) * 100
 
 	def writeXmlItem(self, dom, doc, sequence):
 		for line in self:
@@ -758,16 +769,21 @@ class AccountMoveLine(models.Model):
 			item.appendChild(createElement(dom, 'descripcion', line.name)) # debe describir completamente el producto, marca
 			item.appendChild(createElement(dom, 'cantidad', line.quantity))
 			item.appendChild(createElement(dom, 'unidadMedida', line.sunat_uom_code)) # catalogo NIU o ZZZ
-			item.appendChild(createElement(dom, 'importeUnitarioSinImpuesto', line.price_untaxed))
-			item.appendChild(createElement(dom, 'importeUnitarioConImpuesto', line.price_taxed))
+			item.appendChild(createElement(dom, 'importeUnitarioSinImpuesto', round(line.price_untaxed, 2)))
+			item.appendChild(createElement(dom, 'importeUnitarioConImpuesto', round(line.price_taxed, 2)))
 			item.appendChild(createElement(dom, 'codigoImporteUnitarioConImpuesto', '01')) # 01 Para el precio unitario (INcluye IGV), 02 en caso sea no onerosa
-			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', line.importeTotalSinImpuesto))
+			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', round(line.importeTotalSinImpuesto, 2)))
 			item.appendChild(createElement(dom, 'codigoRazonExoneracion', line.sunat_tax_impact_type)) # Catalogo 7, codigo de afectacion del IGV
 			if line.discount:
-				item.appendChild(createElement(dom, 'importeBaseDescuento', line.importeBaseDescuento))
-				item.appendChild(createElement(dom, 'factorDescuento', line.discount / 100))
-				item.appendChild(createElement(dom, 'importeDescuento', line.importeDescuento))
-			item.appendChild(createElement(dom, 'montoBaseIgv', line.montoBaseIgv))
+				if line.move_id.discount_type == '1':
+					item.appendChild(createElement(dom, 'importeBaseDescuento', round(line.importeBaseDescuento,2 )))
+					item.appendChild(createElement(dom, 'factorDescuento', round(line.discount / 100, 2)))
+					item.appendChild(createElement(dom, 'importeDescuento', round(line.importeDescuento, 2)))
+				elif line.move_id.discount_type == '2':
+					item.appendChild(createElement(dom, 'importeBaseDescuentoNoAfecto', round(line.importeBaseDescuento,2 )))
+					item.appendChild(createElement(dom, 'factorDescuentoNoAfecto', round(line.discount / 100, 2)))
+					item.appendChild(createElement(dom, 'importeDescuentoNoAfecto', round(line.importeDescuento, 2)))
+			item.appendChild(createElement(dom, 'montoBaseIgv', round(line.montoBaseIgv, 2)))
 			item.appendChild(createElement(dom, 'tasaIgv', igvs[0].amount if igvs else '0'))
 			item.appendChild(createElement(dom, 'importeIgv', round(line.importeIgv, 2)))
 			item.appendChild(createElement(dom, 'importeTotalImpuestos', round(line.importeTotalImpuestos, 2)))

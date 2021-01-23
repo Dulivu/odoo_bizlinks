@@ -19,6 +19,7 @@
                 <field name="sunat_ef_type" attrs="{'invisible': [('sunat_type', 'in', ['07', '08', '-'])], 'required': [('sunat_type', 'in', ['01','03'])]}"/>
                 <field name="sunat_nc_type" attrs="{'invisible': [('sunat_type', '!=', '07')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
                 <field name="sunat_nd_type" attrs="{'invisible': [('sunat_type', '!=', '08')], 'required': [('sunat_type', 'in', [('07', '08')])]}"/>
+                <field name="discount_type" attrs="{'invisible': [('sunat_type', 'not in', ['01', '03'])]}"/>
             </field>
 
             <field name="ref" position="attributes">

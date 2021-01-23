@@ -43,6 +43,11 @@ class AccountMove(models.Model):
 		('02', 'Aumento en el valor')
 	], string='Tipo de Nota de Débito', default="01")
 
+	discount_type = fields.Selection([
+		('1', 'Afecto a la base imponible'),
+		('2', 'No afecto a la base imponible')
+	], string='Tipo de descuento', default='1')
+
 
 class AccountMoveLine(models.Model):
 	_inherit = 'account.move.line'
