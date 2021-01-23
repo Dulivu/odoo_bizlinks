@@ -66,7 +66,7 @@ def numberToLetters(num):
 			else:
 				letters.append(CIENTOS[lnum[i]])
 	letters = list(filter(lambda x: x, letters))
-	return ' '.join(letters[::-1]).strip() + ' con ' + parts[1].zfill(2) + '/100'
+	return ' '.join(letters[::-1]).strip() + ' con ' + parts[1].ljust(2, '0') + '/100 SOLES'
 
 
 class AccountMove(models.Model):
@@ -345,7 +345,7 @@ class AccountMove(models.Model):
 			document.appendChild(createElement(dom, 'paisAdquiriente', self.partner_id.country_id.code)) # No obligatorio para boletas
 
 		# totales de la factura	
-		# document.appendChild(createElement(dom, 'totalValorVentaNetoOpGravadas', self.amount_untaxed))
+		document.appendChild(createElement(dom, 'totalValorVentaNetoOpGravadas', self.amount_untaxed))
 		document.appendChild(createElement(dom, 'totalIgv', self.amount_tax))
 		document.appendChild(createElement(dom, 'totalVenta', self.amount_total))
 		document.appendChild(createElement(dom, 'totalImpuestos', self.amount_tax))
@@ -700,48 +700,74 @@ class AccountMoveLine(models.Model):
 
 	sequence = fields.Integer(default=1)
 	descuento_fijo = fields.Float('Desc.', digits=(12,2))
+	price_taxed = fields.Float('Price Taxed', digits=(12,2), compute="_get_price_untaxed")
+	price_untaxed = fields.Float('Price Untaxed', digits=(12,2), compute="_get_price_untaxed")
+	price_untaxed_wd = fields.Float('Price Untaxed WD', digits=(12,2), compute="_get_price_untaxed")
+
+	importeTotalSinImpuesto = fields.Float('itsi', digits=(12,2), compute='_get_price_untaxed')
+	importeBaseDescuento = fields.Float('ibd', digits=(12,2), compute='_get_price_untaxed')
+	importeDescuento = fields.Float('id', digits=(12,2), compute='_get_price_untaxed')
+
+	montoBaseIgv = fields.Float('mbi', digits=(12,2), compute='_get_price_untaxed')
+	importeIgv = fields.Float('ig', digits=(12,2), compute='_get_price_untaxed')
+	importeTotalImpuestos = fields.Float('iti', digits=(12,2), compute='_get_price_untaxed')
+
+	@api.depends('price_unit', 'tax_ids')
+	def _get_price_untaxed(self):
+		for line in self:
+			# afectando a la base imponible
+			line.price_untaxed = line.price_unit
+			line.price_untaxed_wd = line.price_unit * ((100-line.discount)/100)
+			line.price_taxed = line.price_unit * ((100-line.discount)/100)
+			for tax in line.tax_ids:
+				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and tax.price_include:
+					line.price_untaxed = line.price_untaxed / ((100 + tax.amount) / 100)
+					line.price_untaxed_wd = line.price_untaxed / ((100 + tax.amount) / 100)
+			
+			for tax in line.tax_ids:
+				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and not tax.price_include:
+					line.price_taxed = line.price_taxed * ((100 + tax.amount) / 100)
+
+			line.importeTotalSinImpuesto = line.price_untaxed_wd * line.quantity # o
+			line.importeBaseDescuento = line.price_untaxed * line.quantity
+			line.importeDescuento = (line.price_untaxed - line.price_untaxed_wd) * line.quantity
+
+			line.montoBaseIgv = line.price_untaxed_wd * line.quantity # o
+			line.importeIgv = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
+			line.importeTotalImpuestos = (line.price_taxed - line.price_untaxed_wd) * line.quantity # i
+
+	@api.onchange('discount')
+	def onChangeDiscount(self):
+		for line in self:
+			line.descuento_fijo = (line.price_unit * line.discount) / 100
+
+	@api.onchange('descuento_fijo')
+	def onChangeDiscountF(self):
+		for line in self:
+			line.discount = (line.descuento_fijo / line.price_unit) * 100
 
 	def writeXmlItem(self, dom, doc, sequence):
 		for line in self:
 			item = createElement(dom, 'item')
 			doc.appendChild(item)
-			
-			# quitar descuento al precio unitario
-			price_unit = line.price_unit - line.descuento_fijo if line.descuento_fijo else line.price_unit * ((100 - line.discount) / 100)
-			discount = line.price_unit - price_unit
-			line.descuento_fijo = discount
 
-			price_unit_tax = line.price_unit
-			subtotal_tax = line.price_subtotal
-			price_unit_no_tax = line.price_unit
-			subtotal_no_tax = line.price_subtotal
-			for tax in line.tax_ids:
-				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and tax.price_include:
-					price_unit_no_tax = price_unit_no_tax / ((100 + tax.amount) / 100)
-					discount = discount / ((100 + tax.amount) / 100)
-					subtotal_no_tax = round(line.quantity * price_unit_no_tax, 2)
-					subtotal_tax = subtotal_no_tax * (100 + tax.amount) / 100
-
-			
-			for tax in line.tax_ids:
-				if tax.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id and not tax.price_include:
-					price_unit_tax = price_unit_tax * ((100 + tax.amount) / 100)
-					subtotal_tax = round(line.quantity * price_unit_tax, 2)
+			igvs = line.tax_ids.filtered(lambda r: r.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id)
 
 			item.appendChild(createElement(dom, 'numeroOrdenItem', sequence))
 			item.appendChild(createElement(dom, 'codigoProducto', line.product_id.default_code)) # CAPS01 en caso el concepto sea porcentaje de servicio
 			item.appendChild(createElement(dom, 'descripcion', line.name)) # debe describir completamente el producto, marca
 			item.appendChild(createElement(dom, 'cantidad', line.quantity))
 			item.appendChild(createElement(dom, 'unidadMedida', line.sunat_uom_code)) # catalogo NIU o ZZZ
-			item.appendChild(createElement(dom, 'importeUnitarioSinImpuesto', round(price_unit_no_tax, 10)))
-			item.appendChild(createElement(dom, 'importeUnitarioConImpuesto', round(price_unit_tax, 10)))
+			item.appendChild(createElement(dom, 'importeUnitarioSinImpuesto', line.price_untaxed))
+			item.appendChild(createElement(dom, 'importeUnitarioConImpuesto', line.price_taxed))
 			item.appendChild(createElement(dom, 'codigoImporteUnitarioConImpuesto', '01')) # 01 Para el precio unitario (INcluye IGV), 02 en caso sea no onerosa
-			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', subtotal_no_tax))
+			item.appendChild(createElement(dom, 'importeTotalSinImpuesto', line.importeTotalSinImpuesto))
 			item.appendChild(createElement(dom, 'codigoRazonExoneracion', line.sunat_tax_impact_type)) # Catalogo 7, codigo de afectacion del IGV
-			item.appendChild(createElement(dom, 'importeIgv', round(subtotal_tax - subtotal_no_tax, 2)))
-			if line.descuento_fijo:
-				item.appendChild(createElement(dom, 'importeDescuento', round(line.descuento_fijo * line.quantity, 2))) # TODO: Ahora refleja descuento sin IGV
-			item.appendChild(createElement(dom, 'montoBaseIgv', subtotal_no_tax))
-			item.appendChild(createElement(dom, 'importeTotalImpuestos', round((price_unit_tax - price_unit_no_tax) * line.quantity, 2)))
-			igvs = line.tax_ids.filtered(lambda r: r.tax_group_id.id == self.env.ref('l10n_pe.tax_group_igv')[0].id)
-			item.appendChild(createElement(dom, 'tasaIgv', (igvs[0].amount if igvs else '0')))
+			if line.discount:
+				item.appendChild(createElement(dom, 'importeBaseDescuento', line.importeBaseDescuento))
+				item.appendChild(createElement(dom, 'factorDescuento', line.discount / 100))
+				item.appendChild(createElement(dom, 'importeDescuento', line.importeDescuento))
+			item.appendChild(createElement(dom, 'montoBaseIgv', line.montoBaseIgv))
+			item.appendChild(createElement(dom, 'tasaIgv', igvs[0].amount if igvs else '0'))
+			item.appendChild(createElement(dom, 'importeIgv', round(line.importeIgv, 2)))
+			item.appendChild(createElement(dom, 'importeTotalImpuestos', round(line.importeTotalImpuestos, 2)))
