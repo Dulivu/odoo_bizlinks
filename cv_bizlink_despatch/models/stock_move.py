@@ -39,6 +39,8 @@ class StockPicking(models.Model):
 
     total_weitgh = fields.Float('Peso Total', digits=(12,2), compute='_compute_total_weigth')
     carrier_id = fields.Many2one('res.partner', string="Transportista")
+    carrier_car_id = fields.Char('Placa del vehiculo')
+    driver_id = fields.Many2one('res.partner', string="Conductor")
 
     bz_signatura_value = fields.Char('Firma', copy=False)
     bz_hash_code = fields.Char('Codigo HASH', copy=False)
@@ -60,6 +62,7 @@ class StockPicking(models.Model):
 
         soapCommand = dom.createElement('SignOnLineDespatchCmd')
 
+        soapCommand.appendChild(dom.createElement('parametros'))
         param = dom.createElement('parameter')
         param.setAttribute('value', vat)
         param.setAttribute('name', 'idEmisor')
@@ -85,15 +88,16 @@ class StockPicking(models.Model):
         # datos Bizlinks
         document.appendChild(createElement(dom, 'correoEmisor', self.company_id.email))
         document.appendChild(createElement(dom, 'correoAdquiriente', self.partner_id.parent_id.email if self.partner_id.parent_id else self.partner_id.email))
-        document.appendChild(createElement(dom, 'inHabilitado', '1'))
+        #document.appendChild(createElement(dom, 'inHabilitado', '1'))
         document.appendChild(createElement(dom, 'serieNumeroGuia', self.name)) # T###-NNNNNNNN
 
         # datos SUNAT
         document.appendChild(createElement(dom, 'fechaEmisionGuia', fields.Date.from_string(fields.Datetime.context_timestamp(self, self.date))))
         document.appendChild(createElement(dom, 'tipoDocumentoGuia', '09')) # Cat. 09 - GUIA DE REMISION REMITENTE
         # documento relacionado (C)
-        #document.appendChild(createElement(dom, 'numeroDocumentoRelacionado', self.origin))
-        #document.appendChild(createElement(dom, 'codigoDocumentoRelacionado', self.sunat_origin_type))
+        if self.sunat_origin_type:
+            document.appendChild(createElement(dom, 'numeroDocumentoRelacionado', self.origin))
+            document.appendChild(createElement(dom, 'codigoDocumentoRelacionado', self.sunat_origin_type))
         # datos del remitente
         document.appendChild(createElement(dom, 'numeroDocumentoRemitente', self.company_id.vat))
         document.appendChild(createElement(dom, 'tipoDocumentoRemitente', '6')) # Catalogo 06, puesto en RUC por defecto
@@ -103,9 +107,11 @@ class StockPicking(models.Model):
         document.appendChild(createElement(dom, 'tipoDocumentoDestinatario', self.partner_id.l10n_latam_identification_type_id.l10n_pe_vat_code))
         document.appendChild(createElement(dom, 'razonSocialDestinatario', self.partner_id.parent_id.name if self.partner_id.parent_id else self.partner_id.name))
         # datos asociado al establecimiento del tercero (C)
-        #document.appendChild(createElement(dom, 'numeroDocumentoEstablecimiento', self.picking_type_id.warehouse_id.partner_id.vat))
-        #document.appendChild(createElement(dom, 'tipoDocumentoEstablecimiento', self.picking_type_id.warehouse_id.partner_id.l10n_latam_identification_type_id.name))
-        #document.appendChild(createElement(dom, 'razonSocialEstablecimiento', self.picking_type_id.warehouse_id.partner_id.name))
+        # Si el destinatario y el remitente son iguales
+        if self.self.partner_id.vat == self.company_id.vat:
+            document.appendChild(createElement(dom, 'numeroDocumentoEstablecimiento', self.picking_type_id.warehouse_id.partner_id.vat))
+            document.appendChild(createElement(dom, 'tipoDocumentoEstablecimiento', self.picking_type_id.warehouse_id.partner_id.l10n_latam_identification_type_id.l10n_pe_vat_code))
+            document.appendChild(createElement(dom, 'razonSocialEstablecimiento', self.picking_type_id.warehouse_id.partner_id.name))
         # datos del envio
         document.appendChild(createElement(dom, 'motivoTraslado', self.sunat_transfer_reason))
         if self.note:
@@ -117,14 +123,16 @@ class StockPicking(models.Model):
         # transportista (C)
         if self.carrier_id:
             document.appendChild(createElement(dom, 'numeroRucTransportista', self.carrier_id.vat))
-            document.appendChild(createElement(dom, 'tipoDocumentoTransportista', self.carrier_id.l10n_latam_identification_type_id.name))
+            document.appendChild(createElement(dom, 'tipoDocumentoTransportista', self.carrier_id.l10n_latam_identification_type_id.l10n_pe_vat_code))
             document.appendChild(createElement(dom, 'razonSocialTransportista', self.carrier_id.name))
+            document.appendChild(createElement(dom, 'numeroPlacaVehiculo', self.carrier_car_id or '-'))
         # conductor (C)
-        #document.appendChild(createElement(dom, 'numeroDocumentoConductor', self.sunat_transfer_id.vat))
-        #document.appendChild(createElement(dom, 'tipoDocumentoConductor', self.sunat_transfer_id.vat))
+        if self.driver_id:
+            document.appendChild(createElement(dom, 'numeroDocumentoConductor', self.driver_id.vat))
+            document.appendChild(createElement(dom, 'tipoDocumentoConductor', self.driver_id.l10n_latam_identification_type_id.l10n_pe_vat_code))
         # dirección del punto de llegada y partida
-        document.appendChild(createElement(dom, 'ubigeoPtoLlegada', self.partner_id.ubigeo_id.code))
-        document.appendChild(createElement(dom, 'direccionPtoLlegada', self.partner_id.street_name or self.partner_id.street))
+        document.appendChild(createElement(dom, 'ubigeoPtoLLegada', self.partner_id.ubigeo_id.code))
+        document.appendChild(createElement(dom, 'direccionPtoLLegada', self.partner_id.street_name or self.partner_id.street))
         document.appendChild(createElement(dom, 'ubigeoPtoPartida', self.picking_type_id.warehouse_id.partner_id.ubigeo_id.code))
         document.appendChild(createElement(dom, 'direccionPtoPartida', self.picking_type_id.warehouse_id.partner_id.street_name or self.picking_type_id.warehouse_id.partner_id.street))
 

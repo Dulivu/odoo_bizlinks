@@ -7,6 +7,8 @@
         <field name="arch" type="xml">
             <field name="group_id" position="after">
                 <field name="carrier_id"/>
+                <field name="carrier_car_id"/>
+                <field name="driver_id"/>
             </field>
 
             <xpath expr="//header/button[@name='action_cancel']" position="after">
