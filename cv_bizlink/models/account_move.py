@@ -700,17 +700,17 @@ class AccountMoveLine(models.Model):
 	_inherit = "account.move.line"
 
 	descuento_fijo = fields.Float('Desc.', digits=(12,2))
-	price_taxed = fields.Float('Price Taxed', digits=(12,2), compute="_get_price_untaxed")
-	price_untaxed = fields.Float('Price Untaxed', digits=(12,2), compute="_get_price_untaxed")
-	price_untaxed_wd = fields.Float('Price Untaxed WD', digits=(12,2), compute="_get_price_untaxed")
+	price_taxed = fields.Float('Price Taxed', digits=(24,12), compute="_get_price_untaxed")
+	price_untaxed = fields.Float('Price Untaxed', digits=(24,12), compute="_get_price_untaxed")
+	price_untaxed_wd = fields.Float('Price Untaxed WD', digits=(24,12), compute="_get_price_untaxed")
 
-	importeTotalSinImpuesto = fields.Float('itsi', digits=(12,2), compute='_get_price_untaxed')
-	importeBaseDescuento = fields.Float('ibd', digits=(12,2), compute='_get_price_untaxed')
-	importeDescuento = fields.Float('id', digits=(12,2), compute='_get_price_untaxed')
+	importeTotalSinImpuesto = fields.Float('itsi', digits=(24,12), compute='_get_price_untaxed')
+	importeBaseDescuento = fields.Float('ibd', digits=(24,12), compute='_get_price_untaxed')
+	importeDescuento = fields.Float('id', digits=(24,12), compute='_get_price_untaxed')
 
-	montoBaseIgv = fields.Float('mbi', digits=(12,2), compute='_get_price_untaxed')
-	importeIgv = fields.Float('ig', digits=(12,2), compute='_get_price_untaxed')
-	importeTotalImpuestos = fields.Float('iti', digits=(12,2), compute='_get_price_untaxed')
+	montoBaseIgv = fields.Float('mbi', digits=(24,12), compute='_get_price_untaxed')
+	importeIgv = fields.Float('ig', digits=(24,12), compute='_get_price_untaxed')
+	importeTotalImpuestos = fields.Float('iti', digits=(24,12), compute='_get_price_untaxed')
 
 	@api.depends('price_unit', 'tax_ids')
 	def _get_price_untaxed(self):
