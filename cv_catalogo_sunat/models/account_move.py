@@ -47,6 +47,11 @@ class AccountMove(models.Model):
 		('1', 'Afecto a la base imponible'),
 		('2', 'No afecto a la base imponible')
 	], string='Tipo de descuento', default='1')
+	
+	payment_type = fields.Selection([
+		('1', 'CONTADO'),
+		('2', 'CREDITO')
+	], string='Metodo de pago', default='1')
 
 
 class AccountMoveLine(models.Model):
