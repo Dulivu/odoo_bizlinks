@@ -89,6 +89,7 @@ class AccountMove(models.Model):
 	cancel_date = fields.Date('Fecha de Baja')
 	cancel_id = fields.Char('Resumen ID')
 	discount_total = fields.Float('Descuento Total', digits=(12,2), compute='_get_total_discount')
+	oc = fields.Char('Orden de compra')
 
 	def _get_total_discount(self):
 		for me in self:
@@ -317,8 +318,9 @@ class AccountMove(models.Model):
 			if self.ref:
 				document.appendChild(createElement(dom, 'tipoReferencia_1', '09'))
 				document.appendChild(createElement(dom, 'numeroDocumentoReferencia_1', self.ref))
+			if self.oc:
 				document.appendChild(createElement(dom, 'codigoAuxiliar40_3', '9081'))
-				document.appendChild(createElement(dom, 'textoAuxiliar40_3', self.ref))
+				document.appendChild(createElement(dom, 'textoAuxiliar40_3', self.oc))
 		if self.sunat_type == '07' or self.sunat_type == '08':
 			document.appendChild(createElement(dom, 'codigoSerieNumeroAfectado', self.sunat_nc_type))
 			if self.reversed_entry_id:
