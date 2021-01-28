@@ -312,9 +312,13 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'tipoMoneda', self.currency_id.name)) # catalogo 2
 		if self.sunat_type == '01' or self.sunat_type == '03':
 			document.appendChild(createElement(dom, 'tipoOperacion', self.sunat_ef_type)) # catalogo 51
+			document.appendChild(createElement(dom, 'codigoAuxiliar40_1', '9015'))
+			document.appendChild(createElement(dom, 'textoAuxiliar40_1', 'CONTADO' if self.payment_type == '1' else 'CREDITO'))
 			if self.ref:
 				document.appendChild(createElement(dom, 'tipoReferencia_1', '09'))
 				document.appendChild(createElement(dom, 'numeroDocumentoReferencia_1', self.ref))
+				document.appendChild(createElement(dom, 'codigoAuxiliar40_3', '9081'))
+				document.appendChild(createElement(dom, 'textoAuxiliar40_3', self.ref))
 		if self.sunat_type == '07' or self.sunat_type == '08':
 			document.appendChild(createElement(dom, 'codigoSerieNumeroAfectado', self.sunat_nc_type))
 			if self.reversed_entry_id:
@@ -368,6 +372,8 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'textoLeyenda_1', numberToLetters(self.amount_total).upper()))
 		cla = self.env['ir.config_parameter'].sudo().get_param('cv_bizlink.bz_codigo_local_anexo')
 		document.appendChild(createElement(dom, 'codigoLocalAnexoEmisor', cla)) # Codigo asignado por sunat
+		document.appendChild(createElement(dom, 'codigoAuxiliar40_3', '9218'))
+		document.appendChild(createElement(dom, 'textoAuxiliar40_3', self.invoice_user_id.name))
 
 		sequence = 1
 		for line in self.invoice_line_ids:
