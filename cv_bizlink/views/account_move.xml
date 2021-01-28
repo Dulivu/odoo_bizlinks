@@ -84,7 +84,7 @@
 		
 		<field name="invoice_user_id" position="after">
 			<field name="oc"/>
-		<field/>
+		</field>
 
             <xpath expr="//page[@id='other_tab']/group" position="inside">
                 <group string="e-Fact" name="e-fact-group">
