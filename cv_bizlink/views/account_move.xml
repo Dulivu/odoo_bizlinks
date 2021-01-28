@@ -81,6 +81,10 @@
                 <button name="action_reverse" string="Nota de crédito" type="object" groups="account.group_account_invoice" attrs="{'invisible': ['|', ('type', 'not in', ('in_invoice','out_invoice')), ('state', '!=', 'posted')]}"/>
                 <button name="action_nd_reverse" string="Nota de débito" type="object" groups="account.group_account_invoice" attrs="{'invisible': ['|', ('type', 'not in', ('out_invoice')), ('state', '!=', 'posted')]}"/>
             </xpath>
+		
+		<field name="invoice_user_id" position="after">
+			<field name="oc"/>
+		<field/>
 
             <xpath expr="//page[@id='other_tab']/group" position="inside">
                 <group string="e-Fact" name="e-fact-group">
