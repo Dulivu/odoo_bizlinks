@@ -352,9 +352,9 @@ class AccountMove(models.Model):
 		document.appendChild(createElement(dom, 'tipoDocumentoAdquiriente', self.partner_id.l10n_latam_identification_type_id.l10n_pe_vat_code)) # catalogo 6
 		document.appendChild(createElement(dom, 'numeroDocumentoAdquiriente', self.partner_id.vat))
 		document.appendChild(createElement(dom, 'razonSocialAdquiriente', self.partner_id.name))
+		document.appendChild(createElement(dom, 'direccionAdquiriente', self.partner_id.street or '-')) # No obligatorio para boletas
 		if self.sunat_type == '01' or ref[0] == 'F': # sólo se valida si es Factura o notas asocidas
 			document.appendChild(createElement(dom, 'ubigeoAdquiriente', self.partner_id.ubigeo_id.code)) # No obligatorio para boletas
-			document.appendChild(createElement(dom, 'direccionAdquiriente', self.partner_id.street or '-')) # No obligatorio para boletas
 			document.appendChild(createElement(dom, 'urbanizacionAdquiriente', self.partner_id.street2 or '-')) # No obligatorio para boletas
 			document.appendChild(createElement(dom, 'distritoAdquiriente', ad_ubi[2] or '-')) # No obligatorio para boletas
 			document.appendChild(createElement(dom, 'provinciaAdquiriente', ad_ubi[1] or '-')) # No obligatorio para boletas
